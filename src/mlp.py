@@ -14,7 +14,7 @@
 """
 
 import numpy as np
-from activations import get_activation
+from src.activations import get_activation
 
 
 class MLP:

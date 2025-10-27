@@ -14,7 +14,7 @@
 
 import numpy as np
 import time
-from metrics import Metrics
+from src.metrics import Metrics
 
 
 class BaseTrainer:
