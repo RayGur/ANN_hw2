@@ -43,6 +43,8 @@ venv.bak/
 # Results and outputs
 results/logs/*.log
 results/logs/*.txt
+results/logs/*.csv
+results/logs/*.json
 results/figures/*.png
 results/figures/*.jpg
 results/figures/*.pdf
