@@ -12,7 +12,9 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
+import pandas as pd
 from pathlib import Path
+from matplotlib.patches import Patch
 
 
 class Visualizer:
@@ -364,7 +366,6 @@ class Visualizer:
         show : bool
             是否顯示圖表
         """
-        import pandas as pd
 
         fig, axes = plt.subplots(1, 2, figsize=(16, 6))
 
@@ -407,6 +408,311 @@ class Visualizer:
             fontweight="bold",
         )
         ax2.grid(True, alpha=0.3, axis="y")
+
+        plt.tight_layout()
+
+        if save_path:
+            Path(save_path).parent.mkdir(parents=True, exist_ok=True)
+            plt.savefig(save_path, dpi=300, bbox_inches="tight")
+            print(f"✓ Saved to {save_path}")
+
+        if show:
+            plt.show()
+        else:
+            plt.close()
+
+    @staticmethod
+    def plot_architecture_comparison_boxplot(df, save_path=None, show=True):
+        """
+        繪製架構對比箱型圖
+
+        比較 Small vs Recommended 架構在各資料集上的表現分布
+
+        Parameters:
+        -----------
+        df : pd.DataFrame
+            實驗結果 DataFrame,需包含:
+            - dataset: 資料集名稱
+            - architecture: 架構類型 (small/recommended)
+            - test_acc: 測試準確率
+        save_path : str, optional
+            儲存路徑
+        show : bool
+            是否顯示圖表
+        """
+
+        # 準備資料
+        datasets = df["dataset"].unique()
+        architectures = ["small", "recommended"]
+
+        # 設定圖表
+        fig, axes = plt.subplots(1, len(datasets), figsize=(15, 5))
+        if len(datasets) == 1:
+            axes = [axes]
+
+        colors = {"small": "#FF6B6B", "recommended": "#4ECDC4"}
+
+        for idx, dataset in enumerate(datasets):
+            ax = axes[idx]
+            dataset_df = df[df["dataset"] == dataset]
+
+            # 準備箱型圖資料
+            data_to_plot = []
+            labels = []
+            box_colors = []
+
+            for arch in architectures:
+                arch_data = dataset_df[dataset_df["architecture"] == arch][
+                    "test_acc"
+                ].values
+                if len(arch_data) > 0:
+                    data_to_plot.append(arch_data)
+                    labels.append(arch.capitalize())
+                    box_colors.append(colors[arch])
+
+            # 繪製箱型圖
+            bp = ax.boxplot(
+                data_to_plot,
+                labels=labels,
+                patch_artist=True,
+                showmeans=True,
+                meanline=True,
+                boxprops=dict(linewidth=1.5),
+                whiskerprops=dict(linewidth=1.5),
+                capprops=dict(linewidth=1.5),
+                medianprops=dict(color="red", linewidth=2),
+                meanprops=dict(color="blue", linewidth=2, linestyle="--"),
+            )
+
+            # 設定顏色
+            for patch, color in zip(bp["boxes"], box_colors):
+                patch.set_facecolor(color)
+                patch.set_alpha(0.6)
+
+            # 添加數據點 (散點圖)
+            for i, (data, arch) in enumerate(zip(data_to_plot, architectures), 1):
+                y = data
+                x = np.random.normal(i, 0.04, size=len(y))  # 添加隨機抖動
+                ax.scatter(
+                    x,
+                    y,
+                    alpha=0.4,
+                    s=30,
+                    color=colors[arch],
+                    edgecolors="black",
+                    linewidth=0.5,
+                )
+
+            # 設定標籤和標題
+            ax.set_ylabel("Test Accuracy", fontsize=12, fontweight="bold")
+            ax.set_title(f"{dataset}", fontsize=13, fontweight="bold")
+            ax.set_ylim([0, 1.05])
+            ax.grid(True, alpha=0.3, axis="y", linestyle="--")
+            ax.set_axisbelow(True)
+
+            # 添加統計資訊
+            for i, (data, arch) in enumerate(zip(data_to_plot, architectures), 1):
+                mean_val = np.mean(data)
+                median_val = np.median(data)
+                ax.text(
+                    i,
+                    1.02,
+                    f"μ={mean_val:.3f}\nM={median_val:.3f}",
+                    ha="center",
+                    va="bottom",
+                    fontsize=9,
+                    bbox=dict(boxstyle="round", facecolor="wheat", alpha=0.3),
+                )
+
+        # 總標題
+        plt.suptitle(
+            "Architecture Capacity Comparison: Small vs Recommended",
+            fontsize=15,
+            fontweight="bold",
+            y=1.02,
+        )
+
+        # 圖例
+
+        legend_elements = [
+            Patch(facecolor=colors["small"], alpha=0.6, label="Small (2, 1)"),
+            Patch(facecolor=colors["recommended"], alpha=0.6, label="Recommended"),
+            plt.Line2D([0], [0], color="red", linewidth=2, label="Median"),
+            plt.Line2D(
+                [0], [0], color="blue", linewidth=2, linestyle="--", label="Mean"
+            ),
+        ]
+        fig.legend(
+            handles=legend_elements,
+            loc="upper right",
+            bbox_to_anchor=(0.98, 0.98),
+            fontsize=11,
+        )
+
+        plt.tight_layout()
+
+        if save_path:
+            Path(save_path).parent.mkdir(parents=True, exist_ok=True)
+            plt.savefig(save_path, dpi=300, bbox_inches="tight")
+            print(f"✓ Saved to {save_path}")
+
+        if show:
+            plt.show()
+        else:
+            plt.close()
+
+    @staticmethod
+    def plot_architecture_comparison_barplot(df, save_path=None, show=True):
+        """
+        繪製架構對比條狀圖 (含誤差條)
+
+        比較 Small vs Recommended 架構的平均表現
+
+        Parameters:
+        -----------
+        df : pd.DataFrame
+            實驗結果 DataFrame,需包含:
+            - dataset: 資料集名稱
+            - architecture: 架構類型 (small/recommended)
+            - test_acc: 測試準確率
+        save_path : str, optional
+            儲存路徑
+        show : bool
+            是否顯示圖表
+        """
+
+        # 準備資料
+        datasets = df["dataset"].unique()
+        architectures = ["small", "recommended"]
+
+        # 計算統計量
+        stats = []
+        for dataset in datasets:
+            dataset_df = df[df["dataset"] == dataset]
+            for arch in architectures:
+                arch_data = dataset_df[dataset_df["architecture"] == arch]["test_acc"]
+                if len(arch_data) > 0:
+                    stats.append(
+                        {
+                            "dataset": dataset,
+                            "architecture": arch,
+                            "mean": arch_data.mean(),
+                            "std": arch_data.std(),
+                            "max": arch_data.max(),
+                            "min": arch_data.min(),
+                        }
+                    )
+
+        stats_df = pd.DataFrame(stats)
+
+        # 設定圖表
+        fig, ax = plt.subplots(figsize=(12, 6))
+
+        # 設定位置
+        x = np.arange(len(datasets))
+        width = 0.35
+
+        colors = {"small": "#FF6B6B", "recommended": "#4ECDC4"}
+
+        # 繪製條狀圖
+        for i, arch in enumerate(architectures):
+            arch_stats = stats_df[stats_df["architecture"] == arch]
+            means = [
+                (
+                    arch_stats[arch_stats["dataset"] == ds]["mean"].values[0]
+                    if len(arch_stats[arch_stats["dataset"] == ds]) > 0
+                    else 0
+                )
+                for ds in datasets
+            ]
+            stds = [
+                (
+                    arch_stats[arch_stats["dataset"] == ds]["std"].values[0]
+                    if len(arch_stats[arch_stats["dataset"] == ds]) > 0
+                    else 0
+                )
+                for ds in datasets
+            ]
+
+            offset = width * (i - 0.5)
+            bars = ax.bar(
+                x + offset,
+                means,
+                width,
+                yerr=stds,
+                label=arch.capitalize(),
+                color=colors[arch],
+                alpha=0.8,
+                capsize=5,
+                error_kw={"linewidth": 2},
+            )
+
+            # 添加數值標籤
+            for j, (bar, mean, std) in enumerate(zip(bars, means, stds)):
+                height = bar.get_height()
+                ax.text(
+                    bar.get_x() + bar.get_width() / 2.0,
+                    height + std + 0.02,
+                    f"{mean:.3f}",
+                    ha="center",
+                    va="bottom",
+                    fontsize=10,
+                    fontweight="bold",
+                )
+
+        # 設定標籤和標題
+        ax.set_xlabel("Dataset", fontsize=13, fontweight="bold")
+        ax.set_ylabel("Average Test Accuracy", fontsize=13, fontweight="bold")
+        ax.set_title(
+            "Architecture Capacity Comparison: Average Performance",
+            fontsize=15,
+            fontweight="bold",
+        )
+        ax.set_xticks(x)
+        ax.set_xticklabels(datasets, fontsize=11)
+        ax.legend(fontsize=11, loc="lower right")
+        ax.set_ylim([0, 1.1])
+        ax.grid(True, alpha=0.3, axis="y", linestyle="--")
+        ax.set_axisbelow(True)
+
+        # 添加統計表格
+        table_data = []
+        for dataset in datasets:
+            row = [dataset]
+            for arch in architectures:
+                arch_stats = stats_df[
+                    (stats_df["dataset"] == dataset)
+                    & (stats_df["architecture"] == arch)
+                ]
+                if len(arch_stats) > 0:
+                    mean = arch_stats["mean"].values[0]
+                    std = arch_stats["std"].values[0]
+                    row.append(f"{mean:.3f}±{std:.3f}")
+                else:
+                    row.append("N/A")
+            table_data.append(row)
+
+        # 在圖下方添加表格
+        table = ax.table(
+            cellText=table_data,
+            colLabels=["Dataset", "Small", "Recommended"],
+            cellLoc="center",
+            loc="bottom",
+            bbox=[0.0, -0.35, 1.0, 0.25],
+        )
+        table.auto_set_font_size(False)
+        table.set_fontsize(10)
+        table.scale(1, 2)
+
+        # 設定表格樣式
+        for i in range(len(table_data) + 1):
+            for j in range(3):
+                cell = table[(i, j)]
+                if i == 0:  # 標題行
+                    cell.set_facecolor("#4ECDC4")
+                    cell.set_text_props(weight="bold", color="white")
+                else:
+                    cell.set_facecolor("#f0f0f0" if i % 2 == 0 else "white")
 
         plt.tight_layout()
 
