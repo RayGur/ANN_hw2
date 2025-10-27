@@ -433,19 +433,23 @@ if __name__ == "__main__":
     print("視覺化工具測試")
     print("=" * 70)
 
-    # 創建測試數據
+    # 創建測試數據 (修正版)
     epochs = 100
     train_losses = [
-        0.5 * np.exp(-0.05 * i) + 0.01 * np.random.randn() for i in range(epochs)
+        max(0.01, 0.5 * np.exp(-0.05 * i) + 0.01 * np.random.randn())
+        for i in range(epochs)
     ]
     val_losses = [
-        0.5 * np.exp(-0.04 * i) + 0.02 * np.random.randn() for i in range(epochs)
+        max(0.01, 0.5 * np.exp(-0.04 * i) + 0.02 * np.random.randn())
+        for i in range(epochs)
     ]
     train_accs = [
-        1 - 0.5 * np.exp(-0.05 * i) + 0.01 * np.random.randn() for i in range(epochs)
+        np.clip(1 - 0.5 * np.exp(-0.05 * i) + 0.01 * np.random.randn(), 0, 1)
+        for i in range(epochs)
     ]
     val_accs = [
-        1 - 0.5 * np.exp(-0.04 * i) + 0.02 * np.random.randn() for i in range(epochs)
+        np.clip(1 - 0.5 * np.exp(-0.04 * i) + 0.02 * np.random.randn(), 0, 1)
+        for i in range(epochs)
     ]
 
     print("\n[1] 測試損失曲線")

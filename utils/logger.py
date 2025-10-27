@@ -244,7 +244,6 @@ class TrainingLogger:
 # ============================================================
 # 測試程式碼
 # ============================================================
-
 if __name__ == "__main__":
     """
     測試訓練記錄器
@@ -269,16 +268,22 @@ if __name__ == "__main__":
     # 模擬訓練過程
     print("\n模擬訓練過程...")
     for epoch in range(100):
-        train_loss = 0.5 * np.exp(-0.05 * epoch) + 0.01 * np.random.randn()
-        train_acc = 1 - 0.5 * np.exp(-0.05 * epoch) + 0.01 * np.random.randn()
-        val_loss = 0.5 * np.exp(-0.04 * epoch) + 0.02 * np.random.randn()
-        val_acc = 1 - 0.5 * np.exp(-0.04 * epoch) + 0.02 * np.random.randn()
+        # 修正: 確保 loss 為正,accuracy 在 0-1 之間
+        train_loss = max(0.01, 0.5 * np.exp(-0.05 * epoch) + 0.01 * np.random.randn())
+        train_acc = np.clip(
+            1 - 0.5 * np.exp(-0.05 * epoch) + 0.01 * np.random.randn(), 0, 1
+        )
+        val_loss = max(0.01, 0.5 * np.exp(-0.04 * epoch) + 0.02 * np.random.randn())
+        val_acc = np.clip(
+            1 - 0.5 * np.exp(-0.04 * epoch) + 0.02 * np.random.randn(), 0, 1
+        )
 
         logger.log_epoch(epoch, train_loss, train_acc, val_loss, val_acc)
 
         if epoch % 20 == 0:
             print(
-                f"  Epoch {epoch}: Train Loss={train_loss:.4f}, Val Loss={val_loss:.4f}"
+                f"  Epoch {epoch}: Train Loss={train_loss:.4f}, Acc={train_acc:.4f}, "
+                f"Val Loss={val_loss:.4f}, Acc={val_acc:.4f}"
             )
 
     # 記錄訊息
