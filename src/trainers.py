@@ -36,9 +36,9 @@ class BaseTrainer:
         mlp,
         max_epochs=100000,
         learning_rate=None,
-        convergence_threshold=1e-6,
-        convergence_patience=50,
-        early_stopping_patience=10,
+        convergence_threshold=1e-5,  # ← 改
+        convergence_patience=100,  # ← 改
+        early_stopping_patience=200,  # ← 改
         verbose=True,
         verbose_interval=1000,
     ):
@@ -217,22 +217,17 @@ class BaseTrainer:
         """
         檢查是否收斂
 
-        收斂條件: |Loss(t) - Loss(t-1)| < threshold
-        連續 patience 個 epoch 滿足條件
-
-        Parameters:
-        -----------
-        current_loss : float
-            當前損失
-        epoch : int
-            當前 epoch
-
-        Returns:
-        --------
-        bool
-            是否收斂
+        收斂條件:
+        1. 至少訓練 50 個 epoch
+        2. |Loss(t) - Loss(t-1)| < threshold
+        3. Loss 本身足夠小 (< 0.05)
+        4. 連續 patience 個 epoch 滿足條件
         """
         self._loss_history.append(current_loss)
+
+        # 至少訓練 50 個 epoch (避免過早停止)
+        if epoch < 50:
+            return False
 
         # 至少需要兩個 loss 才能比較
         if len(self._loss_history) < 2:
@@ -241,12 +236,14 @@ class BaseTrainer:
         # 計算損失變化
         loss_change = abs(self._loss_history[-1] - self._loss_history[-2])
 
-        if loss_change < self.convergence_threshold:
+        # 收斂條件
+        converged = loss_change < self.convergence_threshold and current_loss < 0.05
+
+        if converged:
             self._convergence_counter += 1
         else:
             self._convergence_counter = 0
 
-        # 連續 patience 個 epoch 滿足條件才判定收斂
         if self._convergence_counter >= self.convergence_patience:
             self.history["convergence_epoch"] = epoch
             return True
