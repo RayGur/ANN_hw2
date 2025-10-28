@@ -440,13 +440,15 @@ class Visualizer:
         show : bool
             是否顯示圖表
         """
+        import matplotlib.pyplot as plt
+        import numpy as np
 
         # 準備資料
         datasets = df["dataset"].unique()
         architectures = ["small", "recommended"]
 
         # 設定圖表
-        fig, axes = plt.subplots(1, len(datasets), figsize=(15, 5))
+        fig, axes = plt.subplots(1, len(datasets), figsize=(16, 6))  # ← 增加高度
         if len(datasets) == 1:
             axes = [axes]
 
@@ -510,18 +512,32 @@ class Visualizer:
             ax.grid(True, alpha=0.3, axis="y", linestyle="--")
             ax.set_axisbelow(True)
 
-            # 添加統計資訊
+            # 添加統計資訊 (調整位置避免遮擋)
             for i, (data, arch) in enumerate(zip(data_to_plot, architectures), 1):
                 mean_val = np.mean(data)
                 median_val = np.median(data)
+                std_val = np.std(data)
+
+                # ← 修正: 根據數據集調整文字位置
+                if dataset == "Breast Cancer Wisconsin" and arch == "recommended":
+                    # BC 的 Recommended 數據很集中在頂部,文字放在左側
+                    text_x = i - 0.35
+                    text_y = mean_val
+                    ha = "right"
+                else:
+                    # 其他情況放在箱子上方
+                    text_x = i
+                    text_y = 1.02
+                    ha = "center"
+
                 ax.text(
-                    i,
-                    1.02,
-                    f"μ={mean_val:.3f}\nM={median_val:.3f}",
-                    ha="center",
+                    text_x,
+                    text_y,
+                    f"μ={mean_val:.3f}\nσ={std_val:.3f}\nM={median_val:.3f}",
+                    ha=ha,
                     va="bottom",
                     fontsize=9,
-                    bbox=dict(boxstyle="round", facecolor="wheat", alpha=0.3),
+                    bbox=dict(boxstyle="round", facecolor="wheat", alpha=0.5, pad=0.3),
                 )
 
         # 總標題
@@ -529,10 +545,11 @@ class Visualizer:
             "Architecture Capacity Comparison: Small vs Recommended",
             fontsize=15,
             fontweight="bold",
-            y=1.02,
-        )
+            y=0.98,
+        )  # ← 調整位置
 
-        # 圖例
+        # 圖例 (移到更好的位置)
+        from matplotlib.patches import Patch
 
         legend_elements = [
             Patch(facecolor=colors["small"], alpha=0.6, label="Small (2, 1)"),
@@ -542,14 +559,18 @@ class Visualizer:
                 [0], [0], color="blue", linewidth=2, linestyle="--", label="Mean"
             ),
         ]
+        # ← 修正: 圖例放在圖外右側,不遮擋數據
         fig.legend(
             handles=legend_elements,
-            loc="upper right",
-            bbox_to_anchor=(0.98, 0.98),
+            loc="center left",
+            bbox_to_anchor=(1.0, 0.5),
             fontsize=11,
+            frameon=True,
+            fancybox=True,
+            shadow=True,
         )
 
-        plt.tight_layout()
+        plt.tight_layout(rect=[0, 0, 0.95, 0.96])  # ← 為圖例留出空間
 
         if save_path:
             Path(save_path).parent.mkdir(parents=True, exist_ok=True)
